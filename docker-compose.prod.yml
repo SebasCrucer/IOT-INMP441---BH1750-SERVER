@@ -26,35 +26,28 @@ services:
     environment:
       DATABASE_URL: postgresql://iot_user:iot_password@postgres:5432/iot_db?schema=public
       PORT: 3000
-    ports:
-      - "3000:3000"
+      SERVICE_URL_BACKEND: ${SERVICE_URL_BACKEND:-}
+    expose:
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy
-    # Volumes solo para desarrollo
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-      - /app/dist
-    # En desarrollo: usar dev mode
-    command: sh -c "npx prisma db push && npm run dev"
+    # Sin volúmenes en producción - usa lo que está en la imagen
+    command: sh -c "npx prisma db push && npm start"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_SERVICE_URL_BACKEND=${SERVICE_URL_BACKEND:-}
+        - VITE_API_URL=${SERVICE_URL_BACKEND:-http://localhost:3000}
     container_name: iot-frontend
-    environment:
-      VITE_API_URL: http://localhost:3000
-    ports:
-      - "5173:5173"
+    expose:
+      - "5173"
     depends_on:
       - backend
-    # Volumes solo para desarrollo
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev
+    # Sin volúmenes en producción - usa lo que está en la imagen
 
 volumes:
   postgres_data:

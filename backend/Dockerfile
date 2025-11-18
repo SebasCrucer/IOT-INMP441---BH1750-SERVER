@@ -8,23 +8,19 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy package files first
+# Copy all files
 COPY package.json package-lock.json* ./
-
-# Install dependencies (including Prisma CLI)
-RUN npm ci
-
-# Copy Prisma schema
 COPY prisma ./prisma/
-
-# Generate Prisma Client (will be regenerated on volume mount, but needed for build)
-RUN npx prisma generate || true
-
-# Copy source code
 COPY . .
 
-# Build TypeScript (will be regenerated on volume mount in dev mode)
-RUN npm run build || true
+# Install dependencies
+RUN npm ci
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build TypeScript
+RUN npm run build
 
 EXPOSE 3000
 

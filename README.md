@@ -41,8 +41,18 @@ PORT=3000
 
 ### 3. Levantar los servicios con Docker
 
+**Desarrollo:**
 ```bash
 docker-compose up --build
+```
+
+**Producción:**
+```bash
+# Definir la variable de entorno con la URL del backend
+export SERVICE_URL_BACKEND=http://tu-backend-url:3000
+
+# Levantar servicios de producción (sin volúmenes de desarrollo)
+docker-compose -f docker-compose.prod.yml up --build -d
 ```
 
 Esto iniciará:
@@ -50,6 +60,8 @@ Esto iniciará:
 - Backend API en el puerto 3000
 - Frontend Dashboard en el puerto 5173
 - Documentación API en `http://localhost:3000/api-docs`
+
+**Nota:** En producción, el archivo `docker-compose.prod.yml` no monta volúmenes de desarrollo, usando solo los archivos construidos en la imagen Docker.
 
 ### 4. Ejecutar migraciones de Prisma
 
