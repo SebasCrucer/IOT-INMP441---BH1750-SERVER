@@ -1,5 +1,19 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 
+// Obtener URL del servidor desde variables de entorno
+// Prioridad: VITE_API_URL > SERVICE_URL_BACKEND > localhost
+const serverUrl = 
+  process.env.VITE_API_URL || 
+  process.env.SERVICE_URL_BACKEND || 
+  'http://localhost:3000';
+
+const serverDescription = 
+  process.env.VITE_API_URL 
+    ? 'Servidor (VITE_API_URL)' 
+    : process.env.SERVICE_URL_BACKEND 
+    ? 'Servidor de producción (SERVICE_URL_BACKEND)' 
+    : 'Servidor de desarrollo';
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: '3.0.0',
@@ -13,8 +27,8 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: 'Servidor de desarrollo',
+        url: serverUrl,
+        description: serverDescription,
       },
     ],
     tags: [

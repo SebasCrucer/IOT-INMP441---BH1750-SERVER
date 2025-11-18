@@ -27,6 +27,7 @@ services:
       DATABASE_URL: postgresql://iot_user:iot_password@postgres:5432/iot_db?schema=public
       PORT: 3000
       SERVICE_URL_BACKEND: ${SERVICE_URL_BACKEND:-}
+      VITE_API_URL: ${SERVICE_URL_BACKEND:-http://localhost:3000}
     expose:
       - "3000"
     depends_on:
