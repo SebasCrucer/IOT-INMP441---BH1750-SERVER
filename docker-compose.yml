@@ -8,8 +8,8 @@ services:
       POSTGRES_USER: iot_user
       POSTGRES_PASSWORD: iot_password
       POSTGRES_DB: iot_db
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,8 +26,8 @@ services:
     environment:
       DATABASE_URL: postgresql://iot_user:iot_password@postgres:5432/iot_db?schema=public
       PORT: 3000
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,8 +43,8 @@ services:
     container_name: iot-frontend
     environment:
       VITE_API_URL: ${SERVICE_URL_BACKEND:-http://localhost:3000}
-    ports:
-      - "5173:5173"
+    expose:
+      - "5173"
     depends_on:
       - backend
     volumes:
