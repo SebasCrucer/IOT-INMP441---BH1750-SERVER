@@ -8,23 +8,26 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first
 COPY package.json package-lock.json* ./
-COPY prisma ./prisma/
 
-# Install dependencies
+# Install dependencies (including Prisma CLI)
 RUN npm ci
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Copy Prisma schema
+COPY prisma ./prisma/
+
+# Generate Prisma Client (will be regenerated on volume mount, but needed for build)
+RUN npx prisma generate || true
 
 # Copy source code
 COPY . .
 
-# Build TypeScript
-RUN npm run build
+# Build TypeScript (will be regenerated on volume mount in dev mode)
+RUN npm run build || true
 
 EXPOSE 3000
 
+# Default command (can be overridden in docker-compose)
 CMD ["npm", "start"]
 

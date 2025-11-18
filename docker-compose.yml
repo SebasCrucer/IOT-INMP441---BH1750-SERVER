@@ -34,7 +34,21 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-    command: sh -c "npx prisma generate && npx prisma db push && npm run dev"
+      - /app/dist
+    command: >
+      sh -c "
+      if [ ! -f /app/package.json ]; then
+        echo 'Error: package.json not found' && exit 1
+      fi &&
+      if [ ! -f /app/prisma/schema.prisma ]; then
+        echo 'Error: prisma/schema.prisma not found' && exit 1
+      fi &&
+      cd /app &&
+      npm install &&
+      npx prisma generate &&
+      npx prisma db push &&
+      npm run dev
+      "
 
   frontend:
     build:
