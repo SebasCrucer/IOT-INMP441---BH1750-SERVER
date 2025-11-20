@@ -182,9 +182,9 @@ El filtro de mediana elimina picos de ruido sin distorsionar la señal de audio.
 - **Ubicación:** `/data/` en la tarjeta SD
 - **Nomenclatura:** `SENSOR_timestamp.json`
 - **Contenido:**
-  - BH1750: `lux`, `rawLux`, `timestamp`
-  - INMP441: `samples[]`, `timestamp`
-- **Frecuencia:** Cada lectura se guarda antes de enviar al servidor
+  - BH1750: `lux`, `rawLux`, `id`, `timestamp` (del servidor)
+  - INMP441: `samples[]`, `id`, `timestamp` (del servidor)
+- **Frecuencia:** Cada lectura se guarda después de recibir respuesta del servidor
 
 ### Comunicación con Servidor
 
@@ -246,16 +246,17 @@ Inicializando sensor INMP441... OK
 --- Nueva lectura de sensores ---
 BH1750 - Lectura cruda: 123.45 lux
 BH1750 - Luminosidad filtrada: 122.30 lux
-Datos guardados en SD: /data/BH1750_1234567890.json
 Enviando a http://192.168.1.50:3000/api/sensors/bh1750: {"lux":122.30}
 Respuesta del servidor: 201
+Respuesta: {"id":"...","timestamp":"2024-01-15T10:30:00.000Z","lux":122.30}
+Datos guardados en SD con timestamp del servidor
 
 INMP441 - Muestras capturadas: 512
   Filtro de mediana aplicado
   Promedio: 1250, Max: 3500, Min: 200
-Datos guardados en SD: /data/INMP441_1234567891.json
 Enviando a http://192.168.1.50:3000/api/sensors/inmp441: {"samples":[...]}
 Respuesta del servidor: 201
+Datos guardados en SD con timestamp del servidor
 --- Lectura completada ---
 ```
 
@@ -304,7 +305,8 @@ Respuesta del servidor: 201
 {
   "lux": 123.45,
   "rawLux": 125.30,
-  "timestamp": 1234567890
+  "id": "123e4567-e89b-12d3-a456-426614174000",
+  "timestamp": "2024-01-15T10:30:00.000Z"
 }
 ```
 
@@ -319,7 +321,8 @@ Respuesta del servidor: 201
 ```json
 {
   "samples": [100, 200, 150, 300, 250, ...],
-  "timestamp": 1234567890
+  "id": "123e4567-e89b-12d3-a456-426614174001",
+  "timestamp": "2024-01-15T10:30:00.000Z"
 }
 ```
 
@@ -334,8 +337,8 @@ Respuesta del servidor: 201
 
 1. **Lectura** → Sensor lee valor crudo
 2. **Filtrado** → Aplicación de técnicas de calidad de datos
-3. **Almacenamiento** → Guardado en SD (formato JSON)
-4. **Transmisión** → Envío al servidor (HTTP POST)
+3. **Transmisión** → Envío al servidor (HTTP POST)
+4. **Almacenamiento** → Guardado en SD con timestamp del servidor (formato JSON)
 5. **Espera** → Intervalo configurado (default: 2 segundos)
 6. **Repetición** → Vuelve al paso 1
 

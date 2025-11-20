@@ -228,10 +228,10 @@ bool saveToSD(const char* sensorType, JsonDocument& doc) {
 // FUNCIONES DE COMUNICACIÓN
 // ============================================
 
-bool sendToServer(const char* endpoint, JsonDocument& doc) {
+String sendToServer(const char* endpoint, JsonDocument& doc) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi no conectado, no se puede enviar al servidor");
-    return false;
+    return "";
   }
   
   HTTPClient http;
@@ -259,7 +259,7 @@ bool sendToServer(const char* endpoint, JsonDocument& doc) {
       Serial.print("Respuesta: ");
       Serial.println(response);
       http.end();
-      return true;
+      return response; // Devolver la respuesta JSON del servidor
     }
   } else {
     Serial.print("ERROR al enviar: ");
@@ -267,7 +267,7 @@ bool sendToServer(const char* endpoint, JsonDocument& doc) {
   }
   
   http.end();
-  return false;
+  return ""; // Devolver string vacío si falla
 }
 
 // ============================================
@@ -349,8 +349,6 @@ void filterINMP441Median(int16_t* samples, int count) {
 // ============================================
 
 void processBH1750Reading() {
-  unsigned long currentTime = millis();
-  
   // Leer valor crudo del sensor
   float rawLux = readBH1750();
   
@@ -369,21 +367,36 @@ void processBH1750Reading() {
   Serial.print(filteredLux);
   Serial.println(" lux");
   
-  // Crear documento JSON para SD (con timestamp local)
-  StaticJsonDocument<200> docSD;
-  docSD["lux"] = filteredLux;
-  docSD["rawLux"] = rawLux; // Guardar también el valor crudo para análisis
-  docSD["timestamp"] = currentTime;
-  
   // Crear documento JSON para servidor (solo lux, como espera el backend)
   StaticJsonDocument<100> docServer;
   docServer["lux"] = filteredLux;
   
-  // Guardar en SD (con timestamp)
-  saveToSD("BH1750", docSD);
-  
   // Enviar al servidor (sin timestamp, el backend lo genera)
-  sendToServer("/bh1750", docServer);
+  String serverResponse = sendToServer("/bh1750", docServer);
+  
+  if (serverResponse.length() > 0) {
+    // Parsear respuesta del servidor para obtener timestamp
+    StaticJsonDocument<300> responseDoc;
+    DeserializationError error = deserializeJson(responseDoc, serverResponse);
+    
+    if (!error) {
+      // Crear documento JSON para SD con timestamp del servidor
+      StaticJsonDocument<300> docSD;
+      docSD["lux"] = filteredLux;
+      docSD["rawLux"] = rawLux; // Guardar también el valor crudo para análisis
+      docSD["id"] = responseDoc["id"].as<String>();
+      docSD["timestamp"] = responseDoc["timestamp"].as<String>(); // Timestamp del servidor
+      
+      // Guardar en SD (con timestamp del servidor)
+      saveToSD("BH1750", docSD);
+      Serial.println("Datos guardados en SD con timestamp del servidor");
+    } else {
+      Serial.print("ERROR al parsear respuesta del servidor: ");
+      Serial.println(error.c_str());
+    }
+  } else {
+    Serial.println("No se pudo obtener respuesta del servidor, no se guardará en SD");
+  }
 }
 
 void processINMP441Reading() {
@@ -420,19 +433,6 @@ void processINMP441Reading() {
   Serial.print(", Min: ");
   Serial.println(minVal);
   
-  // Crear documento JSON para SD (con timestamp local)
-  // Calcular tamaño necesario: samples array (512 números, ~6 chars cada uno) + metadata
-  // Cada número puede ser hasta 5 dígitos + comas/espacios = ~6 bytes por número
-  // 512 * 6 = 3072 bytes + overhead del JSON (~500 bytes) = ~3600 bytes
-  const size_t capacitySD = JSON_ARRAY_SIZE(INMP441_SAMPLE_COUNT) + (INMP441_SAMPLE_COUNT * 6) + 500;
-  DynamicJsonDocument docSD(capacitySD);
-  
-  JsonArray samplesArraySD = docSD.createNestedArray("samples");
-  for (int i = 0; i < INMP441_SAMPLE_COUNT; i++) {
-    samplesArraySD.add(samples[i]);
-  }
-  docSD["timestamp"] = millis();
-  
   // Crear documento JSON para servidor (solo samples, como espera el backend)
   const size_t capacityServer = JSON_ARRAY_SIZE(INMP441_SAMPLE_COUNT) + (INMP441_SAMPLE_COUNT * 6) + 100;
   DynamicJsonDocument docServer(capacityServer);
@@ -442,11 +442,41 @@ void processINMP441Reading() {
     samplesArrayServer.add(samples[i]);
   }
   
-  // Guardar en SD (con timestamp)
-  saveToSD("INMP441", docSD);
-  
   // Enviar al servidor (sin timestamp, el backend lo genera)
-  sendToServer("/inmp441", docServer);
+  String serverResponse = sendToServer("/inmp441", docServer);
+  
+  if (serverResponse.length() > 0) {
+    // Parsear respuesta del servidor para obtener timestamp
+    const size_t capacityResponse = JSON_ARRAY_SIZE(INMP441_SAMPLE_COUNT) + (INMP441_SAMPLE_COUNT * 6) + 500;
+    DynamicJsonDocument responseDoc(capacityResponse);
+    DeserializationError error = deserializeJson(responseDoc, serverResponse);
+    
+    if (!error) {
+      // Crear documento JSON para SD con timestamp del servidor
+      // Calcular tamaño necesario: samples array (512 números, ~6 chars cada uno) + metadata
+      // Cada número puede ser hasta 5 dígitos + comas/espacios = ~6 bytes por número
+      // 512 * 6 = 3072 bytes + overhead del JSON (~500 bytes) = ~3600 bytes
+      const size_t capacitySD = JSON_ARRAY_SIZE(INMP441_SAMPLE_COUNT) + (INMP441_SAMPLE_COUNT * 6) + 500;
+      DynamicJsonDocument docSD(capacitySD);
+      
+      // Copiar samples de la respuesta del servidor (o usar los originales)
+      JsonArray samplesArraySD = docSD.createNestedArray("samples");
+      for (int i = 0; i < INMP441_SAMPLE_COUNT; i++) {
+        samplesArraySD.add(samples[i]);
+      }
+      docSD["id"] = responseDoc["id"].as<String>();
+      docSD["timestamp"] = responseDoc["timestamp"].as<String>(); // Timestamp del servidor
+      
+      // Guardar en SD (con timestamp del servidor)
+      saveToSD("INMP441", docSD);
+      Serial.println("Datos guardados en SD con timestamp del servidor");
+    } else {
+      Serial.print("ERROR al parsear respuesta del servidor: ");
+      Serial.println(error.c_str());
+    }
+  } else {
+    Serial.println("No se pudo obtener respuesta del servidor, no se guardará en SD");
+  }
 }
 
 // ============================================
