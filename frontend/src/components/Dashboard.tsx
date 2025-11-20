@@ -1,33 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRealtimeData } from '../hooks/useRealtimeData';
 import { BH1750Chart } from './BH1750Chart';
 import { INMP441Chart } from './INMP441Chart';
 import { Filters } from './Filters';
-import { apiService, ReadingFilters } from '../services/api';
+import { apiService, ReadingFilters, BH1750Reading, INMP441Reading } from '../services/api';
 
 export const Dashboard: React.FC = () => {
   const { bh1750Data, inmp441Data, loading, error, connected, refetch } = useRealtimeData();
-  const [filteredBH1750, setFilteredBH1750] = useState(bh1750Data);
-  const [filteredINMP441, setFilteredINMP441] = useState(inmp441Data);
-  const [filters, setFilters] = useState<ReadingFilters>({});
+  const [filteredBH1750, setFilteredBH1750] = useState<BH1750Reading[]>([]);
+  const [filteredINMP441, setFilteredINMP441] = useState<INMP441Reading[]>([]);
+  const [filters, setFilters] = useState<ReadingFilters>({ limit: 10 });
+  const [filtersApplied, setFiltersApplied] = useState(false);
 
-  useEffect(() => {
-    setFilteredBH1750(bh1750Data);
-    setFilteredINMP441(inmp441Data);
-  }, [bh1750Data, inmp441Data]);
-
-  const handleFilterChange = async (newFilters: ReadingFilters) => {
-    setFilters(newFilters);
+  const loadFilteredData = useCallback(async (filtersToApply: ReadingFilters) => {
     try {
+      // Asegurar que siempre haya un límite (por defecto 10)
+      const filtersWithLimit: ReadingFilters = {
+        ...filtersToApply,
+        limit: filtersToApply.limit || 10,
+      };
+      
       const [bh1750, inmp441] = await Promise.all([
-        apiService.getBH1750Readings(newFilters),
-        apiService.getINMP441Readings(newFilters),
+        apiService.getBH1750Readings(filtersWithLimit),
+        apiService.getINMP441Readings(filtersWithLimit),
       ]);
       setFilteredBH1750(bh1750.reverse());
       setFilteredINMP441(inmp441.reverse());
     } catch (err) {
       console.error('Error applying filters:', err);
     }
+  }, []);
+
+  // Cargar datos iniciales con límite por defecto
+  useEffect(() => {
+    if (!filtersApplied && !loading) {
+      const initialFilters: ReadingFilters = { limit: 10 };
+      setFilters(initialFilters);
+      loadFilteredData(initialFilters);
+      setFiltersApplied(true);
+    }
+  }, [loading, filtersApplied, loadFilteredData]);
+
+  const handleFilterChange = async (newFilters: ReadingFilters) => {
+    // Asegurar que siempre haya un límite (por defecto 10)
+    const filtersWithLimit: ReadingFilters = {
+      ...newFilters,
+      limit: newFilters.limit || 10,
+    };
+    
+    setFilters(filtersWithLimit);
+    await loadFilteredData(filtersWithLimit);
   };
 
   if (loading && filteredBH1750.length === 0 && filteredINMP441.length === 0) {

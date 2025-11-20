@@ -11,20 +11,20 @@ interface FiltersProps {
 export const Filters: React.FC<FiltersProps> = ({ onFilterChange }) => {
   const [startDate, setStartDate] = React.useState('');
   const [endDate, setEndDate] = React.useState('');
-  const [limit, setLimit] = React.useState<number | ''>('');
+  const [limit, setLimit] = React.useState<number | ''>(10);
 
   React.useEffect(() => {
     onFilterChange({
       startDate: startDate || undefined,
       endDate: endDate || undefined,
-      limit: limit ? Number(limit) : undefined,
+      limit: limit ? Number(limit) : 10, // Siempre aplicar límite, por defecto 10
     });
   }, [startDate, endDate, limit, onFilterChange]);
 
   const handleClear = () => {
     setStartDate('');
     setEndDate('');
-    setLimit('');
+    setLimit(10); // Mantener límite por defecto de 10
   };
 
   return (
@@ -83,8 +83,8 @@ export const Filters: React.FC<FiltersProps> = ({ onFilterChange }) => {
           <input
             type="number"
             value={limit}
-            onChange={(e) => setLimit(e.target.value ? Number(e.target.value) : '')}
-            placeholder="Sin límite"
+            onChange={(e) => setLimit(e.target.value ? Number(e.target.value) : 10)}
+            placeholder="10"
             min="1"
             style={{
               width: '100%',
