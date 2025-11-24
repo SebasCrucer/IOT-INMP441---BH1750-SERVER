@@ -37,7 +37,7 @@ const char* serverURL = "https://wcwk44kgw80kw80cskkckokk.crucerlabs.com/api/sen
 // PARÁMETROS DE CONFIGURACIÓN
 // ============================================
 #define INMP441_SAMPLE_COUNT 512  // Número de muestras por lectura
-#define READING_INTERVAL 2000     // Intervalo entre lecturas (ms)
+#define READING_INTERVAL 500     // Intervalo entre lecturas (ms)
 #define I2S_SAMPLE_RATE 16000     // Frecuencia de muestreo I2S (Hz)
 
 // Parámetros de calidad de datos

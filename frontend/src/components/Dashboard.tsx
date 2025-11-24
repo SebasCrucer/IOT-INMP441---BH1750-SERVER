@@ -3,14 +3,16 @@ import { useRealtimeData } from '../hooks/useRealtimeData';
 import { BH1750Chart } from './BH1750Chart';
 import { INMP441Chart } from './INMP441Chart';
 import { Filters } from './Filters';
+import { AlertPanel } from './AlertPanel';
 import { apiService, ReadingFilters, BH1750Reading, INMP441Reading } from '../services/api';
+import { alertService, Alert } from '../services/alertService';
 
 export const Dashboard: React.FC = () => {
-  const { bh1750Data, inmp441Data, loading, error, connected, refetch } = useRealtimeData();
+  const { loading, error, connected, refetch } = useRealtimeData();
   const [filteredBH1750, setFilteredBH1750] = useState<BH1750Reading[]>([]);
   const [filteredINMP441, setFilteredINMP441] = useState<INMP441Reading[]>([]);
-  const [filters, setFilters] = useState<ReadingFilters>({ limit: 10 });
   const [filtersApplied, setFiltersApplied] = useState(false);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
 
   const loadFilteredData = useCallback(async (filtersToApply: ReadingFilters) => {
     try {
@@ -35,7 +37,6 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!filtersApplied && !loading) {
       const initialFilters: ReadingFilters = { limit: 10 };
-      setFilters(initialFilters);
       loadFilteredData(initialFilters);
       setFiltersApplied(true);
     }
@@ -48,8 +49,20 @@ export const Dashboard: React.FC = () => {
       limit: newFilters.limit || 10,
     };
     
-    setFilters(filtersWithLimit);
     await loadFilteredData(filtersWithLimit);
+  };
+
+  // Analizar datos y generar alertas
+  useEffect(() => {
+    if (filteredBH1750.length > 0 || filteredINMP441.length > 0) {
+      const newAlerts = alertService.analyzeAll(filteredBH1750, filteredINMP441);
+      setAlerts(newAlerts);
+    }
+  }, [filteredBH1750, filteredINMP441]);
+
+  const handleClearAlerts = () => {
+    alertService.clearAlerts();
+    setAlerts([]);
   };
 
   if (loading && filteredBH1750.length === 0 && filteredINMP441.length === 0) {
@@ -103,10 +116,10 @@ export const Dashboard: React.FC = () => {
         textAlign: 'center',
       }}>
         <h1 style={{ fontSize: '32px', color: '#333', marginBottom: '10px' }}>
-          IoT Dashboard - ESP32
+          🐓 Sistema de Monitoreo del Gallinero
         </h1>
         <p style={{ color: '#666', fontSize: '16px' }}>
-          Monitoreo en tiempo real de sensores BH1750 e INMP441
+          Control de calidad y detección de anomalías en tiempo real
         </p>
         <div style={{
           marginTop: '10px',
@@ -117,6 +130,10 @@ export const Dashboard: React.FC = () => {
         </div>
       </header>
 
+      {/* Panel de Alertas - Parte Superior */}
+      <AlertPanel alerts={alerts} onClearAlerts={handleClearAlerts} />
+
+      {/* Filtros y Gráficos - Parte Inferior */}
       <Filters onFilterChange={handleFilterChange} />
 
       <BH1750Chart data={filteredBH1750} />
