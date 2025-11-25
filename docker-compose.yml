@@ -24,8 +24,9 @@ services:
       dockerfile: Dockerfile
     container_name: iot-backend
     environment:
-      DATABASE_URL: postgresql://iot_user:iot_password@postgres:5432/iot_db?schema=public
+      DATABASE_URL: postgresql://iot_user:iot_password@postgres:5432/iot_db?schema=public&connection_limit=10&pool_timeout=20
       PORT: 3000
+      NODE_ENV: development
     ports:
       - "3000:3000"
     depends_on:

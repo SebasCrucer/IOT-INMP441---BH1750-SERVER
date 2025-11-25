@@ -105,9 +105,11 @@ void initWiFi() {
 void initSD() {
   Serial.print("Inicializando tarjeta SD... ");
   
+  // Inicializar SPI con los pines personalizados
   SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   
-  if (!SD.begin(SD_CS)) {
+  // Pasar el objeto SPI para que use la configuración personalizada
+  if (!SD.begin(SD_CS, SPI)) {
     Serial.println("ERROR: Fallo al inicializar tarjeta SD");
     Serial.println("Verifica que la tarjeta esté insertada correctamente");
     return;
